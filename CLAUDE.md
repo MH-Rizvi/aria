@@ -145,7 +145,7 @@ Rotation rules:
 - Vercel AI SDK handles tool calling via generateText() or streamText()
 - LLM decides which tool to call based on user message
 - Tool executes → result returns to LLM → LLM responds to user
-- Same ReAct agentic pattern as RoutAura but in TypeScript
+- This is a ReAct agentic pattern implemented in TypeScript using Vercel AI SDK
 
 ### How OAuth Works
 - NextAuth.js handles entire Google OAuth flow
