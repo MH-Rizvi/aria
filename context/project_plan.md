@@ -32,42 +32,42 @@ be fully verified before moving to the next.
 
 ---
 
-## Phase 1 — Infrastructure
+## Phase 1 — Infrastructure ✅
 *Goal: Auth works, database works, user signs in with Google and gets
 saved to Supabase. Nothing else. No UI beyond a test page.*
 
-- [ ] **T011** — YOU: Create Supabase project at supabase.com
-- [ ] **T012** — YOU: Get DATABASE_URL and DIRECT_URL from Supabase
-- [ ] **T013** — YOU: Create Google Cloud project named "aria"
-- [ ] **T014** — YOU: Enable Gmail API in Google Cloud Console
-- [ ] **T015** — YOU: Enable Google Calendar API in Google Cloud Console
-- [ ] **T016** — YOU: Create OAuth 2.0 credentials (Web Application type)
-- [ ] **T017** — YOU: Add authorized redirect URI:
+- [x] **T011** — YOU: Create Supabase project at supabase.com
+- [x] **T012** — YOU: Get DATABASE_URL and DIRECT_URL from Supabase
+- [x] **T013** — YOU: Create Google Cloud project named "aria"
+- [x] **T014** — YOU: Enable Gmail API in Google Cloud Console
+- [x] **T015** — YOU: Enable Google Calendar API in Google Cloud Console
+- [x] **T016** — YOU: Create OAuth 2.0 credentials (Web Application type)
+- [x] **T017** — YOU: Add authorized redirect URI:
                 http://localhost:3000/api/auth/callback/google
-- [ ] **T018** — YOU: Add test users in OAuth consent screen
-- [ ] **T019** — YOU: Generate NEXTAUTH_SECRET via: openssl rand -base64 32
-- [ ] **T020** — YOU: Create .env.local with all environment variables
-- [ ] **T021** — Install all dependencies:
+- [x] **T018** — YOU: Add test users in OAuth consent screen
+- [x] **T019** — YOU: Generate NEXTAUTH_SECRET via: openssl rand -base64 32
+- [x] **T020** — YOU: Create .env.local with all environment variables
+- [x] **T021** — Install all dependencies:
                 next-auth @auth/prisma-adapter ai @ai-sdk/groq
                 prisma @prisma/client googleapis zustand
                 recharts lucide-react @types/node
-- [ ] **T022** — Initialize Prisma via npx prisma init
-- [ ] **T023** — Write complete Prisma schema in prisma/schema.prisma
+- [x] **T022** — Initialize Prisma via npx prisma init
+- [x] **T023** — Write complete Prisma schema in prisma/schema.prisma
                 Tables: User, Conversation, Message, AiLog, ModelRateLimit
                 All tables include userId, inputTokens/outputTokens split on AiLog
-- [ ] **T024** — Create lib/prisma.ts Prisma client singleton
-- [ ] **T025** — Run npx prisma db push to create all tables in Supabase
-- [ ] **T026** — Create app/api/auth/[...nextauth]/route.ts
+- [x] **T024** — Create lib/prisma.ts Prisma client singleton
+- [x] **T025** — Run npx prisma db push to create all tables in Supabase
+- [x] **T026** — Create app/api/auth/[...nextauth]/route.ts
                 Google provider with all OAuth scopes:
                 openid, email, profile,
                 gmail.readonly, gmail.compose,
                 calendar.readonly, calendar.events
                 Prisma adapter connected
                 Access token and refresh token stored in session
-- [ ] **T027** — Update app/layout.tsx with SessionProvider wrapper
-- [ ] **T028** — Create minimal app/page.tsx that shows sign in button
-- [ ] **T029** — Verify sign in flow works end to end
-- [ ] **T030** — Verify user row created in Supabase users table on first sign in
+- [x] **T027** — Update app/layout.tsx with SessionProvider wrapper
+- [x] **T028** — Create minimal app/page.tsx that shows sign in button
+- [x] **T029** — Verify sign in flow works end to end
+- [x] **T030** — Verify user row created in Supabase users table on first sign in
 
 ---
 
