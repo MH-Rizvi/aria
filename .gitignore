@@ -50,3 +50,7 @@ Thumbs.db
 
 # Memory bank (AI session context)
 memory-bank/
+
+/app/generated/prisma
+
+/lib/generated/prisma

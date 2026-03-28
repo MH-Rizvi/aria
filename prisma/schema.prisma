@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  image         String?
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+  aiLogs        AiLog[]
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  role           String       // "user" or "assistant"
+  content        String
+  createdAt      DateTime     @default(now())
+}
+
+model AiLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  latency      Int      // milliseconds
+  success      Boolean
+  error        String?
+  createdAt    DateTime @default(now())
+}
+
+model ModelRateLimit {
+  id         String   @id @default(cuid())
+  modelId    String   @unique
+  resetAt    DateTime
+  updatedAt  DateTime @updatedAt
+}
