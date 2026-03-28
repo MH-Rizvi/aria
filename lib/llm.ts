@@ -86,7 +86,7 @@ export async function getActiveModel() {
  */
 export async function handleRateLimit(
   retryAfterHeader: string | null
-): Promise<{ model: ReturnType<typeof groq>; modelId: string; modelIndex: number } | null> {
+): Promise<{ model: ReturnType<typeof groq>; modelId: ModelId; modelIndex: number } | null> {
   const retryAfterSeconds = retryAfterHeader
     ? parseInt(retryAfterHeader, 10)
     : 60; // Default to 60s if no header

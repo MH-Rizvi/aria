@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { getActiveModel, handleRateLimit, getCurrentModelIndex } from "@/lib/llm";
 import { logAiCall } from "@/lib/logging";
-import { getServerSession } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 const SYSTEM_PROMPT = `You are Aria, a professional AI work assistant. You help users manage their emails and calendar through conversation.
@@ -24,6 +24,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = (session.user as { id?: string }).id || "unknown";
+
     const { messages } = await request.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -43,42 +45,38 @@ export async function POST(request: Request) {
         model,
         system: SYSTEM_PROMPT,
         messages,
-        maxTokens: 1024,
-        onFinish: async ({ usage }) => {
+        maxOutputTokens: 1024,
+        onFinish: async (event) => {
           const latency = Date.now() - startTime;
-          // Log successful call — runs in background
           logAiCall({
-            userId: session.user.id || "unknown",
+            userId,
             model: modelId,
-            inputTokens: usage?.promptTokens || 0,
-            outputTokens: usage?.completionTokens || 0,
+            inputTokens: event.usage?.inputTokens ?? 0,
+            outputTokens: event.usage?.outputTokens ?? 0,
             latency,
             success: true,
           });
         },
       });
 
-      // Return the stream with model info in headers
-      const response = result.toDataStreamResponse();
-
-      // Add custom header with current model index for frontend sync
+      const response = result.toTextStreamResponse();
       response.headers.set("X-Model-Index", String(getCurrentModelIndex()));
       response.headers.set("X-Model-Id", modelId);
-
       return response;
-    } catch (err: unknown) {
-      // Check if it's a rate limit error (429)
-      const error = err as { status?: number; headers?: Headers; message?: string };
 
-      if (error.status === 429) {
-        const retryAfter = error.headers?.get("retry-after") || null;
+    } catch (err: unknown) {
+      const error = err as Record<string, unknown>;
+      const status = typeof error.status === "number" ? error.status : 0;
+
+      if (status === 429) {
+        const headers = error.headers as Headers | undefined;
+        const retryAfter = headers?.get?.("retry-after") ?? null;
         const fallback = await handleRateLimit(retryAfter);
 
         if (!fallback) {
-          // All models exhausted
           const latency = Date.now() - startTime;
           logAiCall({
-            userId: session.user.id || "unknown",
+            userId,
             model: modelId,
             inputTokens: 0,
             outputTokens: 0,
@@ -96,7 +94,6 @@ export async function POST(request: Request) {
           );
         }
 
-        // Retry with fallback model
         modelId = fallback.modelId;
         model = fallback.model;
 
@@ -104,30 +101,26 @@ export async function POST(request: Request) {
           model,
           system: SYSTEM_PROMPT,
           messages,
-          maxTokens: 1024,
-          onFinish: async ({ usage }) => {
+          maxOutputTokens: 1024,
+          onFinish: async (event) => {
             const latency = Date.now() - startTime;
             logAiCall({
-              userId: session.user.id || "unknown",
+              userId,
               model: modelId,
-              inputTokens: usage?.promptTokens || 0,
-              outputTokens: usage?.completionTokens || 0,
+              inputTokens: event.usage?.inputTokens ?? 0,
+              outputTokens: event.usage?.outputTokens ?? 0,
               latency,
               success: true,
             });
           },
         });
 
-        const retryResponse = retryResult.toDataStreamResponse();
-        retryResponse.headers.set(
-          "X-Model-Index",
-          String(getCurrentModelIndex())
-        );
+        const retryResponse = retryResult.toTextStreamResponse();
+        retryResponse.headers.set("X-Model-Index", String(getCurrentModelIndex()));
         retryResponse.headers.set("X-Model-Id", modelId);
         return retryResponse;
       }
 
-      // Non-429 error
       throw err;
     }
   } catch (err: unknown) {
@@ -135,7 +128,6 @@ export async function POST(request: Request) {
     const errorMessage =
       err instanceof Error ? err.message : "Unknown error occurred";
 
-    // Log failure
     logAiCall({
       userId: "unknown",
       model: "unknown",
