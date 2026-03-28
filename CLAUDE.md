@@ -41,6 +41,9 @@ Do not assume anything. Read the files first.
 - Never reset model rotation on each new message. Persist the current
   active model index in Zustand and rotation state in Supabase.
 - Never create a pages/ directory under any circumstance. App Router only.
+- Never attempt YOU tasks from project_plan.md — these require 
+  manual browser actions and real credentials that only the 
+  developer can provide.
 
 ---
 
