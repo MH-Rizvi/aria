@@ -75,48 +75,48 @@ saved to Supabase. Nothing else. No UI beyond a test page.*
 *Goal: Beautiful chat interface visible and working. No AI yet.
 User can type messages and see them displayed. Layout matches design.md.*
 
-- [ ] **T031** — Set up global CSS variables in app/globals.css
+- [x] **T031** — Set up global CSS variables in app/globals.css
                 All colors, typography, spacing from design.md
-- [ ] **T032** — Load Inter font via next/font/google in app/layout.tsx
-- [ ] **T033** — Create store/useAriaStore.ts
+- [x] **T032** — Load Inter font via next/font/google in app/layout.tsx
+- [x] **T033** — Create store/useAriaStore.ts
                 Fields: messages[], currentModelIndex, isLoading,
                 user, gmailConnected, calendarConnected
-- [ ] **T034** — Create app/auth/signin/page.tsx
+- [x] **T034** — Create app/auth/signin/page.tsx
                 Full screen centered sign in page
                 Aria logo, tagline, Google Sign In button
                 Matches design.md sign in page spec
-- [ ] **T035** — Create app/page.tsx as protected route
+- [x] **T035** — Create app/page.tsx as protected route
                 Redirect to /auth/signin if not authenticated
                 Two column layout: sidebar (260px) + chat area (flex-1)
-- [ ] **T036** — Create components/sidebar/Sidebar.tsx
+- [x] **T036** — Create components/sidebar/Sidebar.tsx
                 Aria logo and name at top
                 Gmail connection card (disconnected state)
                 Calendar connection card (disconnected state)
                 Active model indicator placeholder at bottom
                 Dashboard link at bottom
-- [ ] **T037** — Create components/chat/ChatWindow.tsx
+- [x] **T037** — Create components/chat/ChatWindow.tsx
                 Chat header with user avatar and name
                 Scrollable message list
                 Empty state welcome message from Aria
-- [ ] **T038** — Create components/chat/MessageBubble.tsx
+- [x] **T038** — Create components/chat/MessageBubble.tsx
                 User bubble: right aligned, accent color (#7c3aed)
                 Aria bubble: left aligned, surface color (#1a1a1a)
                 Border radius: user 20px 20px 4px 20px,
                 aria 20px 20px 20px 4px
                 Timestamp visible on hover
                 Fade in animation on appear (bubbleIn keyframe)
-- [ ] **T039** — Create components/chat/ChatInput.tsx
+- [x] **T039** — Create components/chat/ChatInput.tsx
                 Textarea expanding as user types
                 Max height 120px then scrolls
                 Send button: accent when text present, disabled when empty
                 Enter to send, Shift+Enter for new line
-- [ ] **T040** — Create components/chat/TypingIndicator.tsx
+- [x] **T040** — Create components/chat/TypingIndicator.tsx
                 Three pulsing dots inside an Aria bubble
                 Staggered animation: dot1 0ms, dot2 150ms, dot3 300ms
-- [ ] **T041** — Wire ChatInput to Zustand store
+- [x] **T041** — Wire ChatInput to Zustand store
                 Sending message adds to messages[] instantly
                 No AI response yet — just user messages displayed
-- [ ] **T042** — Implement responsive layout
+- [x] **T042** — Implement responsive layout
                 Desktop: sidebar visible full width
                 Tablet: sidebar icon-only mode
                 Mobile: sidebar hidden, hamburger menu overlay
@@ -257,50 +257,137 @@ pulled from Supabase AiLog and ModelRateLimit tables.*
                 Shows live data not mocked values
 
 ---
+## Phase 7 — Landing Page
+*Goal: Beautiful animated landing page that showcases Aria before
+the user signs in. First thing visitors see.*
 
-## Phase 7 — Polish + Deploy
+- [ ] **T065** — Install framer-motion for animations
+- [ ] **T066** — Update routing logic in app/page.tsx
+                  Unauthenticated users see landing page
+                  Authenticated users redirect to /chat
+- [ ] **T067** — Build hero section
+                  Animated Aria logo and name fade in
+                  Typewriter effect on tagline
+                  Subtle violet gradient orb in background
+                  "Get Started" CTA button with shimmer animation
+- [ ] **T068** — Build live chat preview component
+                  Realistic fake chat window in hero
+                  Looping animation showing 3-4 use cases:
+                  email reading, draft creation, calendar scheduling
+                  Typing indicator between messages
+                  Loops automatically, no user interaction needed
+- [ ] **T069** — Build features section
+                  3 cards: Gmail, Calendar, AI Chat
+                  Cards slide up on scroll with staggered timing
+                  Icons from lucide-react
+                  Brief description of each feature
+- [ ] **T070** — Build footer
+                  Aria logo
+                  "Built with Next.js, Groq, and Google APIs"
+                  GitHub link
+- [ ] **T071** — Wire Get Started button to /auth/signin
+
+---
+
+## Phase 8 — Testing & Hardening
+*Goal: App is production ready. All edge cases handled, rate limits
+set, security checked, no crashes under real usage.*
+
+- [ ] **T072** — API rate limiting on all Next.js API routes
+                  Prevent abuse on /api/chat, /api/gmail, /api/calendar
+                  Use upstash/ratelimit or simple in-memory limiter
+                  Return 429 with friendly message when exceeded
+- [ ] **T073** — Input sanitization
+                  Sanitize all user inputs before sending to LLM
+                  Strip HTML and script tags from chat messages
+                  Max message length enforced (500 chars)
+                  Empty message check before API call
+- [ ] **T074** — Auth protection audit
+                  Every API route checks for valid session
+                  No route returns data without userId verification
+                  Unauthenticated requests return 401 not 500
+- [ ] **T075** — userId filter audit
+                  Every Prisma query that returns user data
+                  has a userId filter — no cross user data leakage
+                  Check all routes: chat, gmail, calendar, dashboard
+- [ ] **T076** — Error handling audit
+                  Every API route has try/catch
+                  All errors return proper HTTP status codes
+                  No raw error messages exposed to frontend
+                  Frontend shows friendly error messages not crashes
+- [ ] **T077** — Token expiry handling
+                  Handle expired Google OAuth tokens gracefully
+                  Prompt user to re-authenticate if token is invalid
+                  Never crash silently on auth token errors
+- [ ] **T078** — LLM prompt injection protection
+                  System prompt clearly separates user input
+                  from system instructions
+                  User cannot override system prompt via chat
+- [ ] **T079** — Environment variable audit
+                  All secrets in .env.local only
+                  No keys hardcoded anywhere in codebase
+                  .env.local in .gitignore verified
+- [ ] **T080** — Supabase connection error handling
+                  App degrades gracefully if Supabase is unreachable
+                  Chat still works even if logging fails
+                  User sees helpful message not white screen
+- [ ] **T081** — Load testing chat endpoint
+                  Send 20 rapid messages in succession
+                  Verify model rotation kicks in correctly
+                  Verify no duplicate messages saved to Supabase
+- [ ] **T082** — Cross browser testing
+                  Test in Chrome, Firefox, Safari, Edge
+                  Test on mobile browser
+                  Fix any layout or styling issues found
+- [ ] **T083** — Console audit
+                  No console.log statements left in production code
+                  No TypeScript errors or warnings
+                  No unused imports or variables
+
+---
+
+## Phase 9 — Polish + Deploy
 *Goal: App is live on Vercel, looks professional, README is clean,
 Loom video recorded. Ready to share.*
 
-- [ ] **T065** — Audit entire UI against design.md
-                Every color, spacing, animation verified
-                No generic defaults left anywhere
-- [ ] **T066** — Add loading skeleton screens
-                Chat history loading skeleton
-                Dashboard stats loading skeleton
-                Never use spinners
-- [ ] **T067** — Add error boundaries
-                Graceful UI for API failures
-                Inline error messages not alerts
-- [ ] **T068** — Add Aria system prompt polish
-                Aria introduces itself on first message
-                Aria confirms actions before executing them
-                Aria is concise, professional, helpful
-- [ ] **T069** — YOU: Create Vercel project at vercel.com
-                Connect GitHub repo
-                Set all environment variables in Vercel dashboard
-                Add production redirect URI to Google Cloud Console:
-                https://yourdomain.vercel.app/api/auth/callback/google
-- [ ] **T070** — YOU: Deploy to Vercel and verify live URL works
-- [ ] **T071** — Write clean README.md
-                Project description and motivation
-                Live demo link
-                Tech stack section
-                Features list
-                Setup instructions for local development
-                .env.example with all variable names
-- [ ] **T072** — Create .env.example file with empty values
-- [ ] **T073** — Audit GitHub commit history
-                Meaningful commit messages throughout
-                No giant single commits
-                Clean branch structure
-- [ ] **T074** — YOU: Record Loom video walkthrough
-                Show sign in flow
-                Show Gmail reading and draft creation
-                Show Calendar event creation
-                Show model rotation in action
-                Show LLMOps dashboard with real data
-- [ ] **T075** — Add Loom video link to README.md
+- [ ] **T084** — Audit entire UI against design.md
+                  Every color, spacing, animation verified
+                  No generic defaults left anywhere
+- [ ] **T085** — Add loading skeleton screens
+                  Chat history loading skeleton
+                  Dashboard stats loading skeleton
+                  Never use spinners
+- [ ] **T086** — Add error boundaries
+                  Graceful UI for API failures
+                  Inline error messages not alerts
+- [ ] **T087** — Add Aria system prompt polish
+                  Aria introduces itself on first message
+                  Aria confirms actions before executing them
+                  Aria is concise, professional, helpful
+- [ ] **T088** — YOU: Create Vercel project at vercel.com
+                  Connect GitHub repo
+                  Set all environment variables in Vercel dashboard
+                  Add production redirect URI to Google Cloud Console
+- [ ] **T089** — YOU: Deploy to Vercel and verify live URL works
+- [ ] **T090** — Write clean README.md
+                  Project description and motivation
+                  Live demo link
+                  Tech stack section
+                  Features list
+                  Setup instructions
+                  .env.example with all variable names
+- [ ] **T091** — Create .env.example file with empty values
+- [ ] **T092** — Audit GitHub commit history
+                  Meaningful commit messages throughout
+                  No giant single commits
+                  Clean branch structure
+- [ ] **T093** — YOU: Record Loom video walkthrough
+                  Show sign in flow
+                  Show Gmail reading and draft creation
+                  Show Calendar event creation
+                  Show model rotation in action
+                  Show LLMOps dashboard with real data
+- [ ] **T094** — Add Loom video link to README.md
 
 ---
 _END OF ROADMAP_
