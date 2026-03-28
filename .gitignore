@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Environment
+.env.local
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Memory bank (AI session context)
+memory-bank/
