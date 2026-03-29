@@ -2,39 +2,41 @@
 
 /* ============================================
    Aria Design System — CSS Custom Properties
-   Source of truth: context/design.md
+   Premium Aesthetic Overhaul
    ============================================ */
 
 :root {
   /* Base Colors */
-  --background: #0a0a0a;
-  --surface-1: #111111;
-  --surface-2: #1a1a1a;
-  --surface-3: #222222;
+  --background: #040405; /* Deep, almost absolute black */
+  --surface-1: #0a0a0c;
+  --surface-2: #121216;
+  --surface-3: #1a1a20;
   --border: rgba(255, 255, 255, 0.08);
 
   /* Text Colors */
-  --text-primary: #f5f5f5;
+  --text-primary: #ffffff;
   --text-secondary: #a1a1aa;
   --text-tertiary: #71717a;
 
   /* Accent Colors */
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-subtle: rgba(124, 58, 237, 0.12);
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-subtle: rgba(139, 92, 246, 0.12);
+  --accent-glow: rgba(139, 92, 246, 0.4);
 
   /* Status Colors */
-  --success: #22c55e;
+  --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
-  --success-subtle: rgba(34, 197, 94, 0.12);
+  --success-subtle: rgba(16, 185, 129, 0.12);
   --warning-subtle: rgba(245, 158, 11, 0.12);
   --error-subtle: rgba(239, 68, 68, 0.12);
 
   /* Chat Bubble Colors */
-  --bubble-user: #7c3aed;
+  --bubble-user-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
   --bubble-user-text: #ffffff;
-  --bubble-aria: #1a1a1a;
+  --bubble-aria-bg: rgba(255, 255, 255, 0.04);
+  --bubble-aria-border: rgba(255, 255, 255, 0.08);
   --bubble-aria-text: #f5f5f5;
 
   /* Typography Scale */
@@ -44,13 +46,20 @@
   --text-lg: 17px;
   --text-xl: 20px;
   --text-2xl: 24px;
+  --text-3xl: 32px;
 
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(10, 10, 12, 0.65);
+  --glass-blur: blur(24px);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Wire CSS variables into Tailwind theme */
@@ -70,13 +79,6 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
-  --color-success-subtle: var(--success-subtle);
-  --color-warning-subtle: var(--warning-subtle);
-  --color-error-subtle: var(--error-subtle);
-  --color-bubble-user: var(--bubble-user);
-  --color-bubble-user-text: var(--bubble-user-text);
-  --color-bubble-aria: var(--bubble-aria);
-  --color-bubble-aria-text: var(--bubble-aria-text);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
 }
@@ -86,45 +88,77 @@ body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animations from design.md */
-@keyframes bubbleIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* ============================================
+   React Markdown / Prose Styles for AI Bubbles
+   ============================================ */
+.markdown-prose {
+  color: var(--bubble-aria-text);
+  line-height: 1.6;
+}
+.markdown-prose p {
+  margin-bottom: 12px;
+}
+.markdown-prose p:last-child {
+  margin-bottom: 0;
+}
+.markdown-prose strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+.markdown-prose ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+.markdown-prose ol {
+  list-style-type: decimal;
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+.markdown-prose li {
+  margin-bottom: 6px;
+}
+.markdown-prose li:last-child {
+  margin-bottom: 0;
+}
+.markdown-prose a {
+  color: #a855f7;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms ease;
+}
+.markdown-prose a:hover {
+  border-bottom-color: #a855f7;
+}
+.markdown-prose code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.9em;
 }
 
-@keyframes pulse {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes bubbleInRight {
+  from { opacity: 0; transform: translateX(10px) translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
 }
 
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+@keyframes bubbleInLeft {
+  from { opacity: 0; transform: translateX(-10px) translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
 }
 
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
@@ -132,10 +166,25 @@ body {
   to { opacity: 1; }
 }
 
-/* ============================================
-   Layout — Two Column Chat Layout
-   ============================================ */
+@keyframes pulse {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
 
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  70% { box-shadow: 0 0 0 16px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6)); }
+  50% { opacity: 0.5; filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.2)); }
+}
+
+/* ============================================
+   Layout & Responsive
+   ============================================ */
 .chat-layout {
   display: flex;
   height: 100vh;
@@ -151,23 +200,11 @@ body {
   flex-direction: column;
 }
 
-/* ============================================
-   Responsive — design.md breakpoints
-   ============================================ */
-
-/* Tablet: sidebar collapses to icon-only mode */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .sidebar {
-    width: 64px !important;
-  }
-  .sidebar span,
-  .sidebar a,
-  .sidebar div > div > div:last-child {
-    display: none;
-  }
+  .sidebar { width: 64px !important; }
+  .sidebar span, .sidebar a, .sidebar div > div > div:last-child { display: none; }
 }
 
-/* Mobile: sidebar hidden, hamburger overlay */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -176,33 +213,19 @@ body {
     z-index: 50;
     width: 260px !important;
     height: 100vh;
-    transition: left 250ms ease-out;
+    transition: left 250ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .sidebar.sidebar-open {
-    left: 0;
-  }
-  .sidebar-mobile-toggle {
-    display: flex !important;
-  }
-  .sidebar-overlay {
-    display: block !important;
-  }
-  .chat-main {
-    padding-top: 0;
-  }
+  .sidebar.sidebar-open { left: 0; }
+  .sidebar-mobile-toggle { display: flex !important; }
+  .sidebar-overlay { display: block !important; }
+  .chat-main { padding-top: 0; }
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--surface-3);
   border-radius: var(--radius-full);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-}
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }

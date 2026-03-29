@@ -28,8 +28,8 @@ const { handlers, auth, signIn, signOut } = NextAuth({
         where: { userId: user.id, provider: "google" }
       });
       if (account) {
-        session.accessToken = account.access_token
-        session.refreshToken = account.refresh_token
+        session.accessToken = account.access_token ?? undefined;
+        session.refreshToken = account.refresh_token ?? undefined;
       }
       return session;
     }

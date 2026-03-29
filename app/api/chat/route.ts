@@ -1,19 +1,32 @@
-import { streamText } from "ai";
+// Force Turbopack Cache Invalidation for Schema Rebuild (Attempt 2)
+import { streamText, stepCountIs } from "ai";
 import { getActiveModel, handleRateLimit, getCurrentModelIndex } from "@/lib/llm";
 import { logAiCall } from "@/lib/logging";
 import { getServerSession } from "@/lib/auth";
+import { getGmailTools } from "@/tools/gmailTools";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-const SYSTEM_PROMPT = `You are Aria, a professional AI work assistant. You help users manage their emails and calendar through conversation.
+const SYSTEM_PROMPT = `You are Aria, a professional, highly efficient AI work assistant. Your goal is to help users manage their emails and calendar smoothly through conversation.
 
-Rules:
-- Be concise, professional, and helpful
-- When asked to draft an email, confirm the details before creating it
-- When asked to schedule something, confirm the time and details first
-- Use a warm but efficient tone
-- If you cannot do something, say so clearly
-- Never make up information about the user's emails or calendar`;
+You have access to the following tools:
+- listEmails: Call this ONLY when the user explicitly asks to check their emails, inbox, or recent messages.
+- getEmailById: Call this ONLY when the user wants to read a specific email in detail.
+- createDraft: Call this ONLY when the user wants to draft or send an email.
+
+Behavioral Rules & Guidelines:
+1. DO NOT RUN TOOLS UNPROMPTED. If the user just says "hi", "hello", or makes small talk, respond with a polite greeting and ask how you can help. Do NOT list emails unless specifically asked.
+2. Directness & Precision: Reply ONLY with the information requested. Do not volunteer extra unsolicited emails or details.
+3. Clean Formatting:
+   - Use Markdown to structure your replies clearly.
+   - Use bullet points for lists (e.g., listing emails).
+   - Use **bold text** for emphasis (like senders or subjects).
+   - Keep paragraphs short and scannable.
+4. Tool Usage:
+   - When asked about emails, ALWAYS call listEmails immediately (no need to ask permission). NEVER fabricate emails.
+   - NEVER say you cannot access emails - you have the listEmails tool.
+   - After calling any tool, provide a clean, structured text summary of the results.
+   - When asked to draft an email, confirm the details (To, Subject, Body) before calling the draft tool.`;
 
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -24,6 +37,8 @@ export async function POST(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const accessToken = (session as any).accessToken as string | undefined;
 
     const userId = (session.user as { id?: string }).id || "unknown";
 
@@ -68,11 +83,14 @@ export async function POST(request: Request) {
 
     // Attempt streaming with retry on 429
     try {
+
       const result = streamText({
         model,
         system: SYSTEM_PROMPT,
         messages,
         maxOutputTokens: 1024,
+        stopWhen: stepCountIs(5),
+        tools: accessToken ? getGmailTools(accessToken) : undefined,
         onFinish: async (event) => {
           const latency = Date.now() - startTime;
           logAiCall({
@@ -99,15 +117,11 @@ export async function POST(request: Request) {
         },
       });
 
-      // @ts-ignore - Vercel AI SDK types dynamically expose this in some bundles, suppress false positive IDE warning
-      return new Response(result.textStream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "X-Model-Index": String(getCurrentModelIndex()),
-          "X-Model-Id": modelId,
-          "X-Model-Status": "healthy",
-        }
-      });
+      const response = result.toUIMessageStreamResponse();
+      response.headers.set("X-Model-Index", String(getCurrentModelIndex()));
+      response.headers.set("X-Model-Id", modelId);
+      response.headers.set("X-Model-Status", "healthy");
+      return response;
 
 
     } catch (err: unknown) {
@@ -148,6 +162,8 @@ export async function POST(request: Request) {
           system: SYSTEM_PROMPT,
           messages,
           maxOutputTokens: 1024,
+          stopWhen: stepCountIs(5),
+          tools: accessToken ? getGmailTools(accessToken) : undefined,
           onFinish: async (event) => {
             const latency = Date.now() - startTime;
             logAiCall({
@@ -174,15 +190,11 @@ export async function POST(request: Request) {
           },
         });
 
-        // @ts-ignore - Vercel AI SDK types dynamically expose this in some bundles, suppress false positive IDE warning
-        return new Response(retryResult.textStream, {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "X-Model-Index": String(getCurrentModelIndex()),
-            "X-Model-Id": modelId,
-            "X-Model-Status": "rate-limited",
-          }
-        });
+        const response = retryResult.toUIMessageStreamResponse();
+        response.headers.set("X-Model-Index", String(getCurrentModelIndex()));
+        response.headers.set("X-Model-Id", modelId);
+        response.headers.set("X-Model-Status", "rate-limited");
+        return response;
       }
 
       throw err;
