@@ -7,7 +7,7 @@ import TypingIndicator from "./TypingIndicator";
 import { Bot, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-
+import { useChat, Chat } from "@ai-sdk/react";
 export default function ChatWindow() {
   const { setMessages: setStoreMessages, conversationId, setConversationId } = useAriaStore();
   const [isInitializing, setIsInitializing] = useState(true);
@@ -36,7 +36,7 @@ export default function ChatWindow() {
       <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
         <Bot size={48} color="var(--border)" style={{ animation: "statusPulse 2s infinite" }} />
         <div style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)", animation: "statusPulse 2s infinite", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
-           Hydrating Aria...
+          Hydrating Aria...
         </div>
       </div>
     );
@@ -51,58 +51,24 @@ function ActiveChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
-  const [messages, setMessages] = useState<any[]>(storeMessages);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [chat] = useState(() => new Chat({
+    api: "/api/chat",
+    prepareRequestBody: ({ messages }: { messages: any[] }) => ({
+      messages,
+      conversationId,
+    }),
+    initialMessages: storeMessages as any,
+  } as any));
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
+  const { messages, sendMessage, status, error } = useChat({ chat } as any);
+  const isLoading = status === "streaming" || status === "submitted";
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-
-    const userMessage = { id: Date.now().toString(), role: "user" as const, content: input.trim() };
-    setMessages([...messages, userMessage] as any);
+    sendMessage({ role: "user", content: input.trim() } as any);
     setInput("");
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          conversationId,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to send");
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-      const assistantId = Date.now().toString() + "-assistant";
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        assistantContent += decoder.decode(value, { stream: true });
-        setMessages([
-          ...messages,
-          userMessage,
-          { id: assistantId, role: "assistant" as const, content: assistantContent }
-        ] as any);
-      }
-    } catch (err) {
-      console.error("Send failed:", err);
-      setError(err instanceof Error ? err : new Error("Unknown error"));
-    } finally {
-      setIsLoading(false);
-    }
   };
-
 
   // Hydration is handled explicitly by ActiveChat's delayed mount
 
@@ -256,10 +222,11 @@ function ActiveChat() {
       {/* Input bar */}
       <ChatInput
         input={input}
-        handleInputChange={handleInputChange}
+        setInput={setInput}
         handleSubmit={handleSubmit}
         isLoading={isLoading}
       />
+
     </div>
   );
 }

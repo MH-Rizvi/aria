@@ -42,7 +42,8 @@ export async function POST(request: Request) {
 
     const userId = (session.user as { id?: string }).id || "unknown";
 
-    const { messages, conversationId } = await request.json();
+    const { messages, id, trigger } = await request.json();
+    
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
         { error: "Messages array is required" },
@@ -50,12 +51,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!conversationId) {
-      return NextResponse.json(
-        { error: "Conversation ID is required" },
-        { status: 400 }
-      );
+    // Find the latest conversation or create a new one
+    let conversation = await prisma.conversation.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: { userId },
+      });
     }
+
+    const conversationId = conversation.id;
 
     // Save the new user message (the last one in the array)
     const latestMessage = messages[messages.length - 1];

@@ -97,7 +97,7 @@ export default function MessageBubble({ message, userImage, userName }: MessageB
             whiteSpace: "pre-wrap",
           }}
         >
-          {message.content || (message as any).parts?.[0]?.text || ""}
+          {message.content || (message as any).parts?.find((p: any) => p.type === "text")?.text || ""}
         </div>
 
         {/* Timestamp — show on hover */}
