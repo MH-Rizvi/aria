@@ -54,3 +54,5 @@ memory-bank/
 /app/generated/prisma
 
 /lib/generated/prisma
+
+issues_faced.md

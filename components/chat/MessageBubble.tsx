@@ -97,7 +97,7 @@ export default function MessageBubble({ message, userImage, userName }: MessageB
             whiteSpace: "pre-wrap",
           }}
         >
-          {message.content}
+          {message.content || (message as any).parts?.[0]?.text || ""}
         </div>
 
         {/* Timestamp — show on hover */}
@@ -112,7 +112,7 @@ export default function MessageBubble({ message, userImage, userName }: MessageB
             paddingRight: isUser ? 4 : 0,
           }}
         >
-          {formatTime(message.createdAt)}
+          {message.createdAt ? formatTime(message.createdAt) : ""}
         </span>
       </div>
     </div>

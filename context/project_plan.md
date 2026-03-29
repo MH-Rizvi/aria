@@ -123,11 +123,11 @@ User can type messages and see them displayed. Layout matches design.md.*
 
 ---
 
-## Phase 3 — AI Chat Core
+## Phase 3 — AI Chat Core ✅
 *Goal: User sends message, real AI responds via Groq with streaming.
 Model rotation works. Messages persist in Supabase.*
 
-- [ ] **T043** — Create lib/llm.ts with full model rotation logic
+- [x] **T043** — Create lib/llm.ts with full model rotation logic
                 Models array in priority order:
                 llama-3.3-70b-versatile
                 meta-llama/llama-4-maverick-17b-128e-instruct
@@ -139,30 +139,30 @@ Model rotation works. Messages persist in Supabase.*
                 On each request: check reset timestamps, move back
                 to earliest available model automatically
                 Graceful error message when all models exhausted
-- [ ] **T044** — Create lib/logging.ts
+- [x] **T044** — Create lib/logging.ts
                 Saves every AI call to AiLog table in Supabase
                 Captures: userId, model, inputTokens, outputTokens,
                 latency in ms, success boolean, error string
-- [ ] **T045** — Create app/api/chat/route.ts
+- [x] **T045** — Create app/api/chat/route.ts
                 POST endpoint accepting messages[] and userId
                 Calls lib/llm.ts for model selection
                 Uses Vercel AI SDK streamText()
                 Streams response back to frontend
                 Calls lib/logging.ts after every AI call
                 Full try/catch with proper error responses
-- [ ] **T046** — Connect ChatInput to /api/chat
+- [x] **T046** — Connect ChatInput to /api/chat
                 POST on send, stream response into Aria bubble
                 Show TypingIndicator while waiting
                 Handle errors gracefully in UI
-- [ ] **T047** — Save messages to Supabase
+- [x] **T047** — Save messages to Supabase
                 Every user message saved to messages table with userId
                 Every AI response saved to messages table with userId
                 Via conversationId foreign key
-- [ ] **T048** — Load chat history on page mount
+- [x] **T048** — Load chat history on page mount
                 Fetch last 50 messages from Supabase for current userId
                 Hydrate Zustand messages[] on load
                 Chat resumes after page refresh
-- [ ] **T049** — Update active model indicator in sidebar
+- [x] **T049** — Update active model indicator in sidebar
                 Shows current model name from Zustand
                 Green dot when healthy
                 Yellow dot when approaching rate limit

@@ -3,6 +3,7 @@ import { getActiveModel, handleRateLimit, getCurrentModelIndex } from "@/lib/llm
 import { logAiCall } from "@/lib/logging";
 import { getServerSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 const SYSTEM_PROMPT = `You are Aria, a professional AI work assistant. You help users manage their emails and calendar through conversation.
 
@@ -26,12 +27,38 @@ export async function POST(request: Request) {
 
     const userId = (session.user as { id?: string }).id || "unknown";
 
-    const { messages } = await request.json();
+    const { messages, conversationId } = await request.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
         { error: "Messages array is required" },
         { status: 400 }
       );
+    }
+
+    if (!conversationId) {
+      return NextResponse.json(
+        { error: "Conversation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Save the new user message (the last one in the array)
+    const latestMessage = messages[messages.length - 1];
+    if (latestMessage && latestMessage.role === "user") {
+      try {
+        await prisma.message.create({
+          data: {
+            id: latestMessage.id, // Vercel SDK provides an ID
+            conversationId,
+            role: "user",
+            content: latestMessage.content,
+            createdAt: new Date(),
+          },
+        });
+      } catch (err) {
+        // If ID conflicts, ignore or handle. Vercel SDK IDs are unique.
+        console.error("Failed to save user message:", err);
+      }
     }
 
     // Get active model from rotation
@@ -56,13 +83,32 @@ export async function POST(request: Request) {
             latency,
             success: true,
           });
+          // Save AI message
+          try {
+            await prisma.message.create({
+              data: {
+                conversationId,
+                role: "assistant",
+                content: event.text,
+                createdAt: new Date(),
+              },
+            });
+          } catch (err) {
+            console.error("Failed to save AI message:", err);
+          }
         },
       });
 
-      const response = result.toTextStreamResponse();
-      response.headers.set("X-Model-Index", String(getCurrentModelIndex()));
-      response.headers.set("X-Model-Id", modelId);
-      return response;
+      // @ts-ignore - Vercel AI SDK types dynamically expose this in some bundles, suppress false positive IDE warning
+      return new Response(result.textStream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Model-Index": String(getCurrentModelIndex()),
+          "X-Model-Id": modelId,
+          "X-Model-Status": "healthy",
+        }
+      });
+
 
     } catch (err: unknown) {
       const error = err as Record<string, unknown>;
@@ -112,13 +158,31 @@ export async function POST(request: Request) {
               latency,
               success: true,
             });
+            // Save AI message
+            try {
+              await prisma.message.create({
+                data: {
+                  conversationId,
+                  role: "assistant",
+                  content: event.text,
+                  createdAt: new Date(),
+                },
+              });
+            } catch (err) {
+              console.error("Failed to save AI fallback message:", err);
+            }
           },
         });
 
-        const retryResponse = retryResult.toTextStreamResponse();
-        retryResponse.headers.set("X-Model-Index", String(getCurrentModelIndex()));
-        retryResponse.headers.set("X-Model-Id", modelId);
-        return retryResponse;
+        // @ts-ignore - Vercel AI SDK types dynamically expose this in some bundles, suppress false positive IDE warning
+        return new Response(retryResult.textStream, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "X-Model-Index": String(getCurrentModelIndex()),
+            "X-Model-Id": modelId,
+            "X-Model-Status": "rate-limited",
+          }
+        });
       }
 
       throw err;
@@ -127,7 +191,6 @@ export async function POST(request: Request) {
     const latency = Date.now() - startTime;
     const errorMessage =
       err instanceof Error ? err.message : "Unknown error occurred";
-
     logAiCall({
       userId: "unknown",
       model: "unknown",
@@ -138,6 +201,7 @@ export async function POST(request: Request) {
       error: errorMessage,
     });
 
+    console.error("[Chat API Error]:", err);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }

@@ -15,9 +15,14 @@ const MODEL_NAMES = [
 ];
 
 export default function Sidebar() {
-  const { gmailConnected, calendarConnected, currentModelIndex } = useAriaStore();
+  const { gmailConnected, calendarConnected, currentModelIndex, modelStatus } = useAriaStore();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const modelStatusColor = 
+    modelStatus === "rate-limited" ? "var(--warning)" :
+    modelStatus === "exhausted" ? "var(--error)" : 
+    "var(--success)";
 
   const sidebarContent = (
     <>
@@ -121,7 +126,7 @@ export default function Sidebar() {
               width: 6,
               height: 6,
               borderRadius: "var(--radius-full)",
-              background: "var(--success)",
+              background: modelStatusColor,
               animation: "statusPulse 2000ms infinite",
             }}
           />
@@ -217,9 +222,9 @@ export default function Sidebar() {
         onClick={() => setMobileOpen(!mobileOpen)}
         className="sidebar-mobile-toggle"
         style={{
-          position: "fixed",
-          top: 14,
-          left: 14,
+          position: "absolute",
+          top: 10,
+          left: 16,
           zIndex: 60,
           width: 36,
           height: 36,

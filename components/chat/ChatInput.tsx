@@ -1,13 +1,17 @@
 "use client";
 
-import { useAriaStore } from "@/store/useAriaStore";
 import { ArrowUp } from "lucide-react";
-import { useRef, useState, useCallback, KeyboardEvent } from "react";
+import { useRef, useCallback, KeyboardEvent, useEffect } from "react";
 
-export default function ChatInput() {
-  const [input, setInput] = useState("");
+interface ChatInputProps {
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  isLoading: boolean;
+}
+
+export default function ChatInput({ input, handleInputChange, handleSubmit, isLoading }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { addMessage, isLoading } = useAriaStore();
 
   const adjustHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -17,31 +21,20 @@ export default function ChatInput() {
     }
   }, []);
 
-  const handleSend = useCallback(() => {
-    const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
+  useEffect(() => {
+    adjustHeight();
+  }, [input, adjustHeight]);
 
-    addMessage({
-      id: crypto.randomUUID(),
-      role: "user",
-      content: trimmed,
-      createdAt: new Date(),
-    });
-
-    setInput("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  }, [input, isLoading, addMessage]);
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if ((input ?? "").trim() && !isLoading) {
+        handleSubmit(e as any);
+      }
     }
   };
 
-  const hasText = input.trim().length > 0;
+  const hasText = (input ?? "").trim().length > 0;
 
   return (
     <div
@@ -54,16 +47,17 @@ export default function ChatInput() {
         gap: 12,
       }}
     >
-      <textarea
-        ref={textareaRef}
-        value={input}
-        onChange={(e) => {
-          setInput(e.target.value);
-          adjustHeight();
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Message Aria..."
-        rows={1}
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", width: "100%", alignItems: "flex-end", gap: 12 }}
+      >
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={onKeyDown}
+          placeholder="Message Aria..."
+          rows={1}
         disabled={isLoading}
         style={{
           flex: 1,
@@ -85,10 +79,11 @@ export default function ChatInput() {
         onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
       />
 
-      <button
-        onClick={handleSend}
-        disabled={!hasText || isLoading}
+        <button
+          type="submit"
+          disabled={!hasText || isLoading}
         style={{
+          zIndex: 100,
           width: 40,
           height: 40,
           borderRadius: "var(--radius-sm)",
@@ -103,7 +98,8 @@ export default function ChatInput() {
         }}
       >
         <ArrowUp size={18} color={hasText ? "#ffffff" : "var(--text-tertiary)"} />
-      </button>
+        </button>
+      </form>
     </div>
   );
 }

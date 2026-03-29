@@ -16,6 +16,11 @@ interface LogAiCallParams {
  * Runs in the background — does not block the response.
  */
 export async function logAiCall(params: LogAiCallParams): Promise<void> {
+  if (params.userId === "unknown") {
+    console.warn("Skipping AI log: userId is unknown");
+    return;
+  }
+  
   try {
     await prisma.aiLog.create({
       data: {

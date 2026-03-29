@@ -4,19 +4,130 @@ import { useAriaStore } from "@/store/useAriaStore";
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
 import TypingIndicator from "./TypingIndicator";
-import { Bot } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Bot, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useChat } from "@ai-sdk/react";
 
 export default function ChatWindow() {
-  const { messages, isLoading } = useAriaStore();
+  const { setMessages: setStoreMessages, conversationId, setConversationId } = useAriaStore();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // Fetch initial messages on mount
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const res = await fetch("/api/messages");
+        if (res.ok) {
+          const data = await res.json();
+          setConversationId(data.conversationId);
+          setStoreMessages(data.messages);
+        }
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+    fetchMessages();
+  }, [setConversationId, setStoreMessages]);
+
+  if (isInitializing || !conversationId) {
+    return (
+      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <Bot size={48} color="var(--border)" style={{ animation: "statusPulse 2s infinite" }} />
+        <div style={{ color: "var(--text-secondary)", fontSize: "var(--text-sm)", animation: "statusPulse 2s infinite", fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+           Hydrating Aria...
+        </div>
+      </div>
+    );
+  }
+
+  return <ActiveChat />;
+}
+
+function ActiveChat() {
+  const { messages: storeMessages, setMessages: setStoreMessages, conversationId, setCurrentModelIndex, setModelStatus } = useAriaStore();
   const { data: session } = useSession();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState("");
+
+  const { messages, setMessages, status, error } = useChat({
+    // @ts-ignore - 'api' might be dynamically bound in ai-sdk v6 depending on implementation, suppress type error
+    api: "/api/chat",
+    streamProtocol: "text",
+    initialMessages: storeMessages,
+    onResponse: (response: Response) => {
+      const modelIndex = response.headers.get("X-Model-Index");
+      const modelStatus = response.headers.get("X-Model-Status");
+      if (modelIndex) setCurrentModelIndex(parseInt(modelIndex, 10));
+      if (modelStatus) setModelStatus(modelStatus as "healthy" | "rate-limited" | "exhausted");
+    },
+    onError: () => {
+      setModelStatus("exhausted");
+    }
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = { id: Date.now().toString(), role: "user" as const, content: input.trim() };
+    setMessages([...messages, userMessage] as any);
+    setInput("");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          conversationId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send");
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+      const assistantId = Date.now().toString() + "-assistant";
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        assistantContent += decoder.decode(value, { stream: true });
+        setMessages([
+          ...messages,
+          userMessage,
+          { id: assistantId, role: "assistant" as const, content: assistantContent }
+        ] as any);
+      }
+    } catch (err) {
+      console.error("Send failed:", err);
+    }
+  };
+
+
+  // Hydration is handled explicitly by ActiveChat's delayed mount
+
+  // Keep store in sync
+  useEffect(() => {
+    if (messages.length > 0) {
+      setStoreMessages(messages as any);
+    }
+  }, [messages, setStoreMessages]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, error]);
 
   return (
     <div
@@ -110,7 +221,7 @@ export default function ChatWindow() {
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg: any) => (
           <MessageBubble
             key={msg.id}
             message={msg}
@@ -121,11 +232,45 @@ export default function ChatWindow() {
 
         {isLoading && <TypingIndicator />}
 
+        {error && (
+          <div
+            style={{
+              background: "var(--error-subtle)",
+              border: "1px solid var(--error)",
+              borderRadius: "var(--radius-md)",
+              padding: "16px",
+              color: "var(--text-primary)",
+              fontSize: "var(--text-sm)",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12,
+              animation: "fadeIn 300ms ease-out",
+              alignSelf: "center",
+              maxWidth: "80%",
+            }}
+          >
+            <AlertCircle size={18} color="var(--error)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <div style={{ fontWeight: 600, color: "var(--error)", marginBottom: 4 }}>
+                Failed to send message
+              </div>
+              <div style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                {error.message || "Aria encountered an error. Please try sending your message again."}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
       {/* Input bar */}
-      <ChatInput />
+      <ChatInput
+        input={input}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleSubmit}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
