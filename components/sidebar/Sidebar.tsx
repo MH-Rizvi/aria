@@ -2,7 +2,7 @@
 
 import { useAriaStore } from "@/store/useAriaStore";
 import { useSession, signOut } from "next-auth/react";
-import { Bot, Mail, Calendar, Zap, BarChart2, LogOut, Menu, X } from "lucide-react";
+import { Bot, Mail, Calendar, Zap, BarChart2, LogOut, Menu, X, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -15,9 +15,31 @@ const MODEL_NAMES = [
 ];
 
 export default function Sidebar() {
-  const { gmailConnected, calendarConnected, currentModelIndex, modelStatus } = useAriaStore();
+  const { gmailConnected, calendarConnected, currentModelIndex, modelStatus, clearMessages, setConversationId } = useAriaStore();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showNewChatConfirm, setShowNewChatConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleNewChat = async () => {
+    setIsClearing(true);
+    try {
+      await fetch("/api/messages", { method: "DELETE" });
+      clearMessages();
+      setConversationId(null);
+      
+      const res = await fetch("/api/messages");
+      if (res.ok) {
+        const data = await res.json();
+        setConversationId(data.conversationId);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsClearing(false);
+      setShowNewChatConfirm(false);
+    }
+  };
 
   const modelStatusColor = 
     modelStatus === "rate-limited" ? "var(--warning)" :
@@ -48,6 +70,93 @@ export default function Sidebar() {
 
       {/* Connection cards */}
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        
+        {/* New Chat Button */}
+        <div style={{ paddingBottom: 8 }}>
+          {!showNewChatConfirm ? (
+            <button
+              onClick={() => setShowNewChatConfirm(true)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "10px",
+                background: "transparent",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                color: "var(--text-secondary)",
+                fontSize: "var(--text-sm)",
+                cursor: "pointer",
+                transition: "all 150ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.borderColor = "var(--text-tertiary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-secondary)";
+                e.currentTarget.style.borderColor = "var(--border)";
+              }}
+            >
+              <Plus size={16} />
+              New Chat
+            </button>
+          ) : (
+            <div
+              style={{
+                background: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--text-primary)", textAlign: "center" }}>
+                Start a new conversation? This will clear your current chat.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => setShowNewChatConfirm(false)}
+                  disabled={isClearing}
+                  style={{
+                    flex: 1,
+                    padding: "6px",
+                    background: "transparent",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--text-secondary)",
+                    fontSize: "var(--text-xs)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleNewChat}
+                  disabled={isClearing}
+                  style={{
+                    flex: 1,
+                    padding: "6px",
+                    background: "var(--warning)",
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    color: "#000",
+                    fontSize: "var(--text-xs)",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: isClearing ? 0.7 : 1,
+                  }}
+                >
+                  {isClearing ? "Clearing..." : "Confirm"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {/* Gmail card */}
         <div
           style={{

@@ -54,3 +54,35 @@ export async function GET() {
     );
   }
 }
+
+export async function DELETE() {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    const conversation = await prisma.conversation.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    if (conversation) {
+      await prisma.message.deleteMany({
+        where: { conversationId: conversation.id },
+      });
+      await prisma.conversation.delete({
+        where: { id: conversation.id },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to clear chat:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}

@@ -168,6 +168,10 @@ Model rotation works. Messages persist in Supabase.*
                 Yellow dot when approaching rate limit
                 Red dot when rate limited
                 Updates in real time when rotation happens
+- [x] **T049B** — Add "New Chat" feature
+                Add button to Sidebar with inline confirmation
+                Call DELETE /api/messages to clear Supabase chat history
+                Clear Zustand state and refetch new conversationId
 
 ---
 
