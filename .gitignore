@@ -56,3 +56,4 @@ memory-bank/
 /lib/generated/prisma
 
 issues_faced.md
+.agents/rules/user-rules.md
