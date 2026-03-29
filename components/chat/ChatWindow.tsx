@@ -7,7 +7,6 @@ import TypingIndicator from "./TypingIndicator";
 import { Bot, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useChat } from "@ai-sdk/react";
 
 export default function ChatWindow() {
   const { setMessages: setStoreMessages, conversationId, setConversationId } = useAriaStore();
@@ -52,23 +51,9 @@ function ActiveChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
-  const { messages, setMessages, status, error } = useChat({
-    // @ts-ignore - 'api' might be dynamically bound in ai-sdk v6 depending on implementation, suppress type error
-    api: "/api/chat",
-    streamProtocol: "text",
-    initialMessages: storeMessages,
-    onResponse: (response: Response) => {
-      const modelIndex = response.headers.get("X-Model-Index");
-      const modelStatus = response.headers.get("X-Model-Status");
-      if (modelIndex) setCurrentModelIndex(parseInt(modelIndex, 10));
-      if (modelStatus) setModelStatus(modelStatus as "healthy" | "rate-limited" | "exhausted");
-    },
-    onError: () => {
-      setModelStatus("exhausted");
-    }
-  });
-
-  const isLoading = status === "submitted" || status === "streaming";
+  const [messages, setMessages] = useState<any[]>(storeMessages);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -81,6 +66,7 @@ function ActiveChat() {
     const userMessage = { id: Date.now().toString(), role: "user" as const, content: input.trim() };
     setMessages([...messages, userMessage] as any);
     setInput("");
+    setIsLoading(true);
 
     try {
       const res = await fetch("/api/chat", {
@@ -111,6 +97,9 @@ function ActiveChat() {
       }
     } catch (err) {
       console.error("Send failed:", err);
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+    } finally {
+      setIsLoading(false);
     }
   };
 
